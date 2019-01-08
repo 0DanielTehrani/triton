@@ -143,9 +143,11 @@ namespace cryptonote
   {
     uint64_t amount;
     txout_target_v target;
+    uint8_t is_trust_addrs;
 
     BEGIN_SERIALIZE_OBJECT()
       VARINT_FIELD(amount)
+      VARINT_FIELD(is_trust_addrs)
       FIELD(target)
     END_SERIALIZE()
 

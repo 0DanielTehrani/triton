@@ -468,6 +468,12 @@ namespace cryptonote
      *
      * @return the public key
      */
+    bool get_trust_addr_outs(std::vector<uint64_t> &indices) const;
+
+    /**
+
+    **/
+
     crypto::public_key get_output_key(uint64_t amount, uint64_t global_index) const;
 
     /**
@@ -556,6 +562,11 @@ namespace cryptonote
      *
      * @return the fee quantized mask
      */
+    bool check_tx_input_source(cryptonote::transaction& tx, bool& is_trust_addrs);
+
+    /**
+
+    **/
     static uint64_t get_fee_quantization_mask();
 
     /**
@@ -600,7 +611,7 @@ namespace cryptonote
      *
      * @return true if the fee is enough, false otherwise
      */
-    bool check_fee(size_t tx_weight, uint64_t fee) const;
+    bool check_fee(size_t tx_weight, uint64_t fee, bool input_includes_trust_addrs=false) const;
 
     /**
      * @brief check that a transaction's outputs conform to current standards

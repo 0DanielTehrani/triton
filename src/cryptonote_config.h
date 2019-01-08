@@ -52,7 +52,7 @@
 
 #define TRUST_TX_INPUT_AMOUNT 1000000000000
 #define TRUST_TX_UNLOCK_TIME ((uint64_t)(-1))
-#define TRUST_TX_ACTIVATE_HEIGHT 3
+#define TRUST_TX_ACTIVATE_HEIGHT 10
 // MONEY_SUPPLY - total number coins to be generated
 #define MONEY_SUPPLY                                    ((uint64_t)(-1))
 #define EMISSION_SPEED_FACTOR_PER_MINUTE                (20)
@@ -172,7 +172,7 @@ namespace config
   boost::uuids::uuid const NETWORK_ID = { {
       0x12 ,0x30, 0xF1, 0x71 , 0x61, 0x04 , 0x41, 0x61, 0x17, 0x31, 0x00, 0x82, 0x16, 0xA1, 0xA1, 0x10
     } }; // Bender's nightmare
-  std::string const GENESIS_TX = "010101ff0001ffffffffffff03028ab72d9eb6a2f5b225b7ab008d38c08524f2fd3b662ec6d736aecfd32d9c4e824601fb1f569e7f71f11116b77b2609e8476c8aafecc77d05c54ec33a3453030d7c5d020131040164fb9826fd6b97adb9d9f2fc77323fd9a3e5040b60c1fec35751da50c3043edc";
+  std::string const GENESIS_TX = "020101ff0001ffffffffffff0740029a65aa8264cf6402722cd368acc6a008b89f33d054730886e75d7994b98cd84546011daa045518ce9ae0e56a61a6674bc1a08d0d002f213c0e967a365d0fec74185502013104012e959fa2484f92712ff73b4be6460f5b599a7997fe70848a822c85c67c0e2dcc00";
   uint32_t const GENESIS_NONCE = 10000;
 
   namespace testnet

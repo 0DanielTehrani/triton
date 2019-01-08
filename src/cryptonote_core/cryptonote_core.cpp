@@ -1232,6 +1232,11 @@ namespace cryptonote
     return m_blockchain_storage.get_outs(req, res);
   }
   //-----------------------------------------------------------------------------------------------
+  bool core::get_trust_addr_outs(std::vector<uint64_t> &indexes) const
+  {
+    return m_blockchain_storage.get_trust_addr_outs(indexes);
+  }
+  //-----------------------------------------------------------------------------------------------
   bool core::get_output_distribution(uint64_t amount, uint64_t from_height, uint64_t to_height, uint64_t &start_height, std::vector<uint64_t> &distribution, uint64_t &base) const
   {
     return m_blockchain_storage.get_output_distribution(amount, from_height, to_height, start_height, distribution, base);

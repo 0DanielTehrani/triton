@@ -177,7 +177,14 @@ namespace cryptonote
       fee = tx.rct_signatures.txnFee;
     }
 
-    if (!kept_by_block && !m_blockchain.check_fee(tx_weight, fee))
+    bool input_includes_trust_addrs = false;
+    if(tx.unlock_time != TRUST_TX_UNLOCK_TIME && !m_blockchain.check_tx_input_source(tx, input_includes_trust_addrs))
+    {
+      tvc.m_verifivation_failed = true;
+      return false;
+    }
+
+    if (!kept_by_block && !m_blockchain.check_fee(tx_weight, fee, input_includes_trust_addrs))
     {
       tvc.m_verifivation_failed = true;
       tvc.m_fee_too_low = true;

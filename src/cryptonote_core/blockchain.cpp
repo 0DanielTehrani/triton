@@ -59,6 +59,7 @@
 
 #define FIND_BLOCKCHAIN_SUPPLEMENT_MAX_SIZE (100*1024*1024) // 100 MB
 
+#define TRUST_ADDRS_EXTRA_FEE_PERCENTAGE 5
 using namespace crypto;
 
 //#include "serialization/json_archive.h"
@@ -236,7 +237,7 @@ bool Blockchain::scan_outputkeys_for_indexes(size_t tx_version, const txin_to_ke
           output_index = m_db->get_output_key(0, i);
 
         // call to the passed boost visitor to grab the public key for the output
-        if (!vis.handle_output(output_index.unlock_time, output_index.pubkey, output_index.commitment))
+        if (!vis.handle_output(output_index.unlock_time, output_index.pubkey, output_index.commitment, output_index.is_trust_addrs))
         {
           MERROR_VER("Failed to handle_output for output no = " << count << ", with absolute offset " << i);
           return false;
@@ -1136,13 +1137,6 @@ bool Blockchain::validate_trust_transaction(const block& b)
   uint64_t fee = 0;
   bool relayed, do_not_relay, double_spend_seen;
 
-  txpool_tx_meta_t meta;
-  if (get_txpool_tx_meta(get_transaction_hash(b.trust_tx), meta))
-  {
-    MERROR("Failed to find tx in txpool");
-    return true;
-  }
-
   uint64_t output_sum = 0;
   for (auto& o: b.trust_tx.vout)
     output_sum += o.amount;
@@ -1754,6 +1748,26 @@ crypto::public_key Blockchain::get_output_key(uint64_t amount, uint64_t global_i
 {
   output_data_t data = m_db->get_output_key(amount, global_index);
   return data.pubkey;
+}
+//------------------------------------------------------------------
+bool Blockchain::get_trust_addr_outs(std::vector<uint64_t> &indexes) const
+{
+  try
+  {
+    uint64_t num_outs = m_db->get_num_outputs(0); // Since all outputs are RingCT.
+    uint64_t i = 0;
+    for (; i < num_outs; ++i)
+    {
+      output_data_t od = m_db->get_output_key(0, i);
+      if (od.is_trust_addrs)
+        indexes.push_back(i);
+    }
+  }
+  catch (const std::exception &e)
+  {
+    return false;
+  }
+  return true;
 }
 
 //------------------------------------------------------------------
@@ -2874,7 +2888,7 @@ uint64_t Blockchain::get_dynamic_base_fee(uint64_t block_reward, size_t median_b
 }
 
 //------------------------------------------------------------------
-bool Blockchain::check_fee(size_t tx_weight, uint64_t fee) const
+bool Blockchain::check_fee(size_t tx_weight, uint64_t fee, bool input_includes_trust_addrs) const
 {
   const uint8_t version = get_current_hard_fork_version();
 
@@ -2890,7 +2904,15 @@ bool Blockchain::check_fee(size_t tx_weight, uint64_t fee) const
   uint64_t needed_fee;
   uint64_t fee_per_byte = get_dynamic_base_fee(base_reward, median, version);
   MDEBUG("Using " << print_money(fee_per_byte) << "/byte fee");
-  needed_fee = tx_weight * fee_per_byte;
+  if (input_includes_trust_addrs)
+  {
+    needed_fee = tx_weight * fee_per_byte + (base_reward * (TRUST_ADDRS_EXTRA_FEE_PERCENTAGE / 100.0));
+  }
+  else
+  {
+    needed_fee = tx_weight * fee_per_byte;
+  }
+
   // quantize fee up to 8 decimals
   const uint64_t mask = get_fee_quantization_mask();
   needed_fee = (needed_fee + mask - 1) / mask * mask;
@@ -2963,6 +2985,44 @@ bool Blockchain::is_tx_spendtime_unlocked(uint64_t unlock_time) const
   return false;
 }
 //------------------------------------------------------------------
+bool Blockchain::check_tx_input_source(cryptonote::transaction& tx, bool& is_trust_addrs)
+{
+
+  struct outputs_visitor
+  {
+    bool m_includes_trust_addrs;
+    outputs_visitor() : m_includes_trust_addrs(false)
+    {
+    }
+    bool handle_output(uint64_t unlock_time, const crypto::public_key &pubkey, const rct::key &commitment, bool is_trust_addrs)
+    {
+      if (is_trust_addrs)
+        m_includes_trust_addrs = true;
+
+      return true;
+    }
+  };
+
+  uint64_t pmax_used_block_height = 0;
+  outputs_visitor vis;
+  for (txin_v& in : tx.vin)
+  {
+    const txin_to_key& in_to_key = boost::get<txin_to_key>(in);
+    if(!scan_outputkeys_for_indexes(tx.version, in_to_key, vis, get_transaction_prefix_hash(tx), &pmax_used_block_height))
+    {
+      MERROR_VER("Failed to get output keys for tx with amount = " << print_money(in_to_key.amount) << " and count indexes " << in_to_key.key_offsets.size());
+      return false;
+    }
+
+    if (vis.m_includes_trust_addrs)
+      break;
+  }
+
+  is_trust_addrs = vis.m_includes_trust_addrs;
+  return true;
+}
+
+//------------------------------------------------------------------
 // This function locates all outputs associated with a given input (mixins)
 // and validates that they exist and are usable.  It also checks the ring
 // signature for each input.
@@ -2982,7 +3042,7 @@ bool Blockchain::check_tx_input(size_t tx_version, const txin_to_key& txin, cons
       m_output_keys(output_keys), m_bch(bch)
     {
     }
-    bool handle_output(uint64_t unlock_time, const crypto::public_key &pubkey, const rct::key &commitment)
+    bool handle_output(uint64_t unlock_time, const crypto::public_key &pubkey, const rct::key &commitment, bool is_trust_addrs)
     {
       //check tx unlock time
       if (!m_bch.is_tx_spendtime_unlocked(unlock_time))

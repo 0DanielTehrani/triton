@@ -118,6 +118,7 @@ struct output_data_t
   uint64_t           unlock_time;  //!< the output's unlock time (or height)
   uint64_t           height;       //!< the height of the block which created the output
   rct::key           commitment;   //!< the output's amount commitment (for spend verification)
+  uint8_t is_trust_addrs;
 };
 #pragma pack(pop)
 

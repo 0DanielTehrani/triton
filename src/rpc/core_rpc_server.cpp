@@ -394,6 +394,18 @@ namespace cryptonote
     return true;
   }
   //------------------------------------------------------------------------------------------------------------------------------
+  bool core_rpc_server::on_get_trust_addr_outs(const COMMAND_RPC_GET_TRUST_ADDRS_OUTS::request& req, COMMAND_RPC_GET_TRUST_ADDRS_OUTS::response& res)
+  {
+    if(!m_core.get_trust_addr_outs(res.indexes))
+    {
+      res.status = "Failed";
+      return true;
+    }
+
+    res.status = CORE_RPC_STATUS_OK;
+    return true;
+  }
+  //------------------------------------------------------------------------------------------------------------------------------
   bool core_rpc_server::on_get_outs(const COMMAND_RPC_GET_OUTPUTS::request& req, COMMAND_RPC_GET_OUTPUTS::response& res)
   {
     PERF_TIMER(on_get_outs);

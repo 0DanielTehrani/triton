@@ -978,6 +978,7 @@ uint64_t BlockchainLMDB::add_output(const crypto::hash& tx_hash,
   ok.data.pubkey = boost::get < txout_to_key > (tx_output.target).key;
   ok.data.unlock_time = unlock_time;
   ok.data.height = m_height;
+  ok.data.is_trust_addrs = tx_output.is_trust_addrs;
   if (tx_output.amount == 0)
   {
     ok.data.commitment = *commitment;
